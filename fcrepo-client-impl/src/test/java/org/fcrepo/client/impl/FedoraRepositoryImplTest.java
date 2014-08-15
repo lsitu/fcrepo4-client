@@ -15,9 +15,10 @@
  */
 package org.fcrepo.client.impl;
 
-import static com.hp.hpl.jena.graph.NodeFactory.createURI;
-import static com.hp.hpl.jena.graph.Triple.create;
 import static org.apache.http.HttpStatus.SC_OK;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -25,27 +26,28 @@ import static org.mockito.MockitoAnnotations.initMocks;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.fcrepo.client.FedoraException;
+import org.fcrepo.client.FedoraObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
-
-import com.hp.hpl.jena.graph.Triple;
-import com.hp.hpl.jena.rdf.model.Model;
+import org.mockito.Mockito;
 
 /**
  *
- * @author longshousitu
+ * @author lsitu
  *
  */
 public class FedoraRepositoryImplTest {
 
-    @Mock
-    FedoraRepositoryImpl mockRepoImpl;
+    FedoraRepositoryImpl fedoraRepository;
 
     @Mock
     HttpClient mockClient;
@@ -62,8 +64,7 @@ public class FedoraRepositoryImplTest {
     @Mock
     private FedoraObjectImpl mockObject;
 
-    @Mock
-    private Model mockModel;
+    private String testRepositoryUrl = "http://localhost:8080/test";
 
     private final String testContent = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                 "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"" +
@@ -72,31 +73,38 @@ public class FedoraRepositoryImplTest {
                 "<rdf:type rdf:resource=\"http://fedora.info/definitions/v4/rest-api#resource\"/>" +
                 "<rdf:type rdf:resource=\"http://fedora.info/definitions/v4/rest-api#object\"/>" +
                 "<fcrepo:uuid>2fb9c440-db63-434f-929b-0ff29253205c</fcrepo:uuid>" +
-                "</rdf:description>" +
+                "</rdf:Description>" +
                 "</rdf:RDF>";
-    private final Triple testTriple =
-            create(createURI("info:test"), createURI("info:test"),
-                    createURI("info:test"));
 
 
     @Before
     public void setUp() throws IOException {
         initMocks(this);
-        when(mockClient.execute(any(HttpUriRequest.class))).thenReturn(mockResponse);
-        when(mockResponse.getEntity()).thenReturn(mockEntity);
-        when(mockResponse.getStatusLine()).thenReturn(mockStatusLine);
+        fedoraRepository = new FedoraRepositoryImpl (testRepositoryUrl, mockClient);
     }
 
     @Test
-    public void testGetObject() throws IOException {
+    public void testGetObject() throws IOException, FedoraException {
         final String testId = "testGetObject";
-
-        mockModel.add(mockModel.asStatement(testTriple));
+        when(mockClient.execute(any(HttpUriRequest.class))).thenReturn(mockResponse);
+        when(mockResponse.getEntity()).thenReturn(mockEntity);
+        final Header mockContentType = Mockito.mock(Header.class);
+        when(mockEntity.getContentType()).thenReturn(mockContentType);
+        when(mockContentType.getValue()).thenReturn("application/rdf+xml");
+        when(mockResponse.getStatusLine()).thenReturn(mockStatusLine);
         when(mockStatusLine.getStatusCode()).thenReturn(SC_OK);
         try (
             InputStream rdf =
                 new ByteArrayInputStream(testContent.getBytes())) {
             when(mockEntity.getContent()).thenReturn(rdf);
         }
+        final FedoraObject testObject = fedoraRepository.getObject(testId);
+        assertNotNull(testObject);
+        assertTrue(testObject.getProperties().hasNext());
+    }
+
+    @Test
+    public void testGetRepositoryUrl() {
+        assertEquals ("Resitory URL is not the same", testRepositoryUrl, fedoraRepository.getRepositoryUrl());
     }
 }
