@@ -8,7 +8,7 @@
   <artifactId>fcrepo-client-impl</artifactId>
   <name>Fedora Repository Java Client API Impl</name>
   <description>Fedora Repository Client API impl, implementing the Fedora Repository Java client interfaces.</description>
-  <packaging>jar</packaging>
+  <packaging>bundle</packaging>
 
   <properties>
     <jena.version>2.11.1</jena.version>
@@ -128,6 +128,10 @@
             <artifactId>objenesis</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.fcrepo</groupId>
+        <artifactId>fcrepo-kernel</artifactId>
       </dependency>
   </dependencies>
 </project>

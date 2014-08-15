@@ -33,7 +33,7 @@ import org.fcrepo.client.FedoraRepository;
 import org.fcrepo.client.FedoraResource;
 import org.fcrepo.client.ReadOnlyException;
 import org.fcrepo.client.utils.RDFSinkFilter;
-import org.fcrepo.client.utils.RdfLexicon;
+import org.fcrepo.kernel.RdfLexicon;
 import org.slf4j.Logger;
 
 import com.hp.hpl.jena.graph.Graph;
@@ -119,7 +119,8 @@ public class FedoraResourceImpl implements FedoraResource {
     @Override
     public String getName() {
         final String p = path.endsWith("/") ? path.substring(0, path.length() - 1) : path;
-        return p.split("/")[0];
+        final String[] paths = p.split("/");
+        return paths[paths.length - 1];
     }
 
     @Override
@@ -158,8 +159,9 @@ public class FedoraResourceImpl implements FedoraResource {
     @Override
     public boolean isWritable() {
         final Collection<String> values = getPropertyValues (RdfLexicon.WRITABLE);
-        if (values != null && values.iterator().hasNext()) {
-            return Boolean.parseBoolean(values.iterator().next());
+        if (values != null && values.size() > 0) {
+            final Iterator<String> it = values.iterator();
+            return Boolean.parseBoolean(it.next());
         }
         return false;
     }
@@ -200,8 +202,14 @@ public class FedoraResourceImpl implements FedoraResource {
                  Node.ANY);
         final Set<String> set = new HashSet<>();
         if (iterator.hasNext()) {
-            set.add(iterator.next()
-                    .getObject().getLiteralValue().toString());
+            final Node object = iterator.next().getObject();
+            if (object.isLiteral()) {
+                set.add(object.getLiteralValue().toString());
+            } else if (object.isURI()) {
+                set.add(object.getURI().toString());
+            } else {
+                set.add(object.toString());
+            }
         }
         return set;
      }
